@@ -2,54 +2,81 @@ mod stepper;
 use esp_idf_hal::peripherals::Peripherals;
 
 fn main() -> anyhow::Result<()> {
-    // It is necessary to call this function once. Otherwise some patches to the runtime
-    // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
 
     let per = Peripherals::take()?;
 
     let mut grating_motor = stepper::Stepper::new(
-        per.pins.gpio1,
-        per.pins.gpio2,
-        per.pins.gpio3,
-        per.pins.gpio4,
+        per.pins.gpio22,
+        per.pins.gpio23,
+        per.pins.gpio32,
+        per.pins.gpio33,
+        1., //TODO determine this value, experimentally
+        0,
+        50,
+        0,
     );
-
     loop {
-        grating_motor.step_forward()?;
         grating_motor.step_backward()?;
+        esp_idf_svc::log::EspLogger::initialize_default();
+
+        log::info!("{}", grating_motor.step_counter);
     }
+
 }
 
+// Functions that I don't know where else to put.
 fn scan(
-    current_position: i32,
+    current_position: &i32,
     start_wavelength: i32,
     end_wavelength: i32,
     mut motor: stepper::Stepper,
 ) -> anyhow::Result<()> {
-    if current_position == start_wavelength {
-        let difference = end_wavelength - start_wavelength;
-        // TODO
-        let mut steps = difference / motor.step_size;
-
-        while number != 0 {
-            motor.step_forward()?;
-            number += 1;
-        }
-    } else {
-        let mut number = current_position - start_wavelength;
-        if number > 0 {
-            while number != start_wavelength {
-                motor.step_backward()?;
-                number -= 1;
-            }
-
+    let mut start_dif = step_dif(current_position, &start_wavelength, &motor);
+    let mut delta = step_dif(&start_wavelength, &end_wavelength, &motor);
+    while start_dif != 0 {
+        if start_dif > 0 {
+            motor.step_backward()?;
+            start_dif -= 1;
         } else {
-            while number != start_wavelength {
+            motor.step_forward()?;
+            start_dif += 1;
+        }
+    }
+    while delta != 0 {
+        motor.step_forward()?;
+        delta += 1;
+    }
+    Ok(())
+}
+
+fn move_to(
+    current_position: &i32,
+    requested_wavelength: i32,
+    mut motor: stepper::Stepper,
+) -> anyhow::Result<()> {
+    if *current_position != requested_wavelength {
+        let mut dif = step_dif(current_position, &requested_wavelength, &motor);
+        if dif > 0 {
+            while dif != 0 {
+                motor.step_backward()?;
+                dif -= 1;
+            }
+        } else {
+            while dif != 0 {
                 motor.step_forward()?;
-                number += 1;
+                dif += 1;
             }
         }
     }
     Ok(())
+}
+
+fn step_dif(current_position: &i32, wavelength: &i32, motor: &stepper::Stepper) -> i32 {
+    if current_position == wavelength {
+        0
+    } else {
+        let difference = wavelength - current_position;
+        (difference as f32 / motor.step_size) as i32
+    }
 }
