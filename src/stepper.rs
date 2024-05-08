@@ -46,23 +46,21 @@ impl Stepper {
     // TODO Implement current position adjustment in our step funcs
     pub fn step_forward(&mut self) -> anyhow::Result<()> {
         self.step_counter += 1;
-        let abs_step = self.step_counter.abs();
         self.current_position += 1;
-        self.step_num(abs_step)?;
+        self.step_num(self.step_counter)?;
         FreeRtos::delay_ms(self.delay_ms);
         Ok(())
     }
 
     pub fn step_backward(&mut self) -> anyhow::Result<()> {
         self.step_counter -= 1;
-        let abs_step = self.step_counter.abs();
         self.current_position -= 1;
-        self.step_num(abs_step)?;
+        self.step_num(self.step_counter)?;
         FreeRtos::delay_ms(self.delay_ms);
         Ok(())
     }
     fn step_num(&mut self, step_counter: i32) -> anyhow::Result<()> {
-        let step_num = step_counter % 4;
+        let step_num = step_counter.rem_euclid(4);
         match step_num {
             0 => self.step_one(),
             1 => self.step_two(),
