@@ -26,7 +26,7 @@ impl Grating {
         current_position: i32,
         delay_ms: u32,
         step_counter: i32,
-        offset: f32, 
+        offset: f32,
     ) -> Grating {
         let pin1 = pin1.downgrade();
         let in1 = PinDriver::output(pin1).unwrap();

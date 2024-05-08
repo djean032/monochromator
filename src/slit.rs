@@ -45,6 +45,7 @@ impl Slit {
             step_counter,
         }
     }
+
     #[allow(dead_code)]
     pub fn zero_slit(&mut self, zero_sense: bool) -> anyhow::Result<bool> {
         while zero_sense == false {
@@ -52,7 +53,6 @@ impl Slit {
         }
         Ok(true)
     }
-
 
     #[allow(dead_code)]
     pub fn set_width(&mut self, width: f32) -> anyhow::Result<()> {

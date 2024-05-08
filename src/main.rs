@@ -19,6 +19,11 @@ fn main() -> anyhow::Result<()> {
         0,
         400.,
     );
+//    let mut grating_motor2 = grating::Grating::new(pin1, pin2, pin3, pin4, step_size, current_position, delay_ms, step_counter, offset)
+
+    let mut slit_motor = slit::Slit::new(pin1, pin2, pin3, pin4, step_size, 0, 50, 0);
+
+
     loop {
         grating_motor.step_backward()?;
 
