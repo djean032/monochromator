@@ -2,7 +2,7 @@ use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::gpio::*;
 
 // TODO Add in current position as struct field
-pub struct Stepper {
+pub struct Grating {
     pub in1: PinDriver<'static, AnyIOPin, Output>,
     pub in2: PinDriver<'static, AnyIOPin, Output>,
     pub in3: PinDriver<'static, AnyIOPin, Output>,
@@ -11,10 +11,12 @@ pub struct Stepper {
     pub current_position: i32,
     pub delay_ms: u32,
     pub step_counter: i32,
+    pub offset: f32,
 }
 
 #[allow(clippy::too_many_arguments)]
-impl Stepper {
+#[allow(dead_code)]
+impl Grating {
     pub fn new(
         pin1: impl IOPin + 'static,
         pin2: impl IOPin + 'static,
@@ -24,7 +26,8 @@ impl Stepper {
         current_position: i32,
         delay_ms: u32,
         step_counter: i32,
-    ) -> Stepper {
+        offset: f32, 
+    ) -> Grating {
         let pin1 = pin1.downgrade();
         let in1 = PinDriver::output(pin1).unwrap();
         let pin2 = pin2.downgrade();
@@ -33,7 +36,7 @@ impl Stepper {
         let in3 = PinDriver::output(pin3).unwrap();
         let pin4 = pin4.downgrade();
         let in4 = PinDriver::output(pin4).unwrap();
-        Stepper {
+        Grating {
             in1,
             in2,
             in3,
@@ -42,10 +45,58 @@ impl Stepper {
             current_position,
             delay_ms,
             step_counter,
+            offset,
         }
     }
-    // TODO Implement current position adjustment in our step funcs
+
+    pub fn zero_motor(&mut self, zero_sense: bool) -> anyhow::Result<bool> {
+        while zero_sense == false {
+            self.step_backward()?;
+        }
+        Ok(true)
+    }
+
     #[allow(dead_code)]
+    pub fn scan(&mut self, start_wavelength: f32, end_wavlength: f32) -> anyhow::Result<()> {
+        let start_position = ((start_wavelength - self.offset) * self.step_size) as i32;
+        let end_position = ((end_wavlength - self.offset) * self.step_size) as i32;
+        let dif = end_position - start_position;
+        if start_position == self.current_position {
+            self.step(dif)?;
+        } else {
+            let start_dif = (self.current_position - start_position) as i32;
+            self.step(-start_dif)?;
+            self.step(dif)?;
+        }
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn move_to(&mut self, wavelength: f32) -> anyhow::Result<()> {
+        let position = ((wavelength - self.offset) * self.step_size) as i32;
+        if position == self.current_position {
+        } else {
+            let dif = self.current_position - position;
+            self.step(-dif)?;
+        }
+        Ok(())
+    }
+
+    pub fn step(&mut self, mut steps: i32) -> anyhow::Result<()> {
+        if steps < 0 {
+            while steps != 0 {
+                self.step_backward()?;
+                steps += 1;
+            }
+        } else {
+            while steps != 0 {
+                self.step_forward()?;
+                steps -= 1;
+            }
+        }
+        Ok(())
+    }
+
     pub fn step_forward(&mut self) -> anyhow::Result<()> {
         self.step_counter += 1;
         self.current_position += 1;
@@ -64,12 +115,13 @@ impl Stepper {
     fn step_num(&mut self, step_counter: i32) -> anyhow::Result<()> {
         let step_num = step_counter.rem_euclid(4);
         match step_num {
-            0 => self.step_one(),
-            1 => self.step_two(),
-            2 => self.step_three(),
-            3 => self.step_four(),
-            _ => Ok(()),
+            0 => self.step_one()?,
+            1 => self.step_two()?,
+            2 => self.step_three()?,
+            3 => self.step_four()?,
+            _ => (),
         }
+        Ok(())
     }
 
     fn step_one(&mut self) -> anyhow::Result<()> {

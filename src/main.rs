@@ -1,4 +1,5 @@
-mod stepper;
+mod grating;
+mod slit;
 use esp_idf_hal::peripherals::Peripherals;
 
 fn main() -> anyhow::Result<()> {
@@ -7,7 +8,7 @@ fn main() -> anyhow::Result<()> {
 
     let per = Peripherals::take()?;
 
-    let mut grating_motor = stepper::Stepper::new(
+    let mut grating_motor = grating::Grating::new(
         per.pins.gpio22,
         per.pins.gpio23,
         per.pins.gpio32,
@@ -16,6 +17,7 @@ fn main() -> anyhow::Result<()> {
         0,
         50,
         0,
+        400.,
     );
     loop {
         grating_motor.step_backward()?;
