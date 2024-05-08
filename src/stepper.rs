@@ -44,6 +44,7 @@ impl Stepper {
         }
     }
     // TODO Implement current position adjustment in our step funcs
+    #[allow(dead_code)]
     pub fn step_forward(&mut self) -> anyhow::Result<()> {
         self.step_counter += 1;
         self.current_position += 1;
