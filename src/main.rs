@@ -22,5 +22,4 @@ fn main() -> anyhow::Result<()> {
 
         log::info!("{}", grating_motor.step_counter);
     }
-
 }
