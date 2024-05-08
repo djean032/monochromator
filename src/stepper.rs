@@ -13,6 +13,7 @@ pub struct Stepper {
     pub step_counter: i32,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Stepper {
     pub fn new(
         pin1: impl IOPin + 'static,
